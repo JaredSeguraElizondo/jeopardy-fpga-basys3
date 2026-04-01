@@ -1,0 +1,79 @@
+# Pregunta 1
+Q:Capital de Australia?         
+A:Sydney        
+B:Melbourne     
+C:Canberra      
+D:Brisbane      
+ANS:C
+
+# Pregunta 2
+Q:Quien pinto la Mona Lisa?     
+A:Van Gogh      
+B:Picasso       
+C:Da Vinci      
+D:Rembrandt     
+ANS:C
+
+# Pregunta 3
+Q:Continente mas grande?        
+A:Africa        
+B:America       
+C:Asia          
+D:Europa        
+ANS:C
+
+# Pregunta 4
+Q:Idioma mas hablado del mundo  
+A:Ingles        
+B:Espanol       
+C:Hindi         
+D:Mandarin      
+ANS:D
+
+# Pregunta 5
+Q:Planetas en el sistema solar  
+A:7             
+B:8             
+C:9             
+D:10            
+ANS:B
+
+# Pregunta 6
+Q:Capital de Japon              
+A:Osaka         
+B:Kioto         
+C:Tokio         
+D:Hiroshima     
+ANS:C
+
+# Pregunta 7
+Q:Quien escribio Don Quijote?   
+A:Lope de Vega  
+B:Cervantes     
+C:Quevedo       
+D:Calderon      
+ANS:B
+
+# Pregunta 8
+Q:Rio mas largo del mundo       
+A:Nilo          
+B:Amazonas      
+C:Yangtze       
+D:Misisipi      
+ANS:A
+
+# Pregunta 9
+Q:Cuantos colores tiene arcoiris
+A:5             
+B:6             
+C:7             
+D:8             
+ANS:C
+
+# Pregunta 10
+Q:Pais mas grande del mundo     
+A:Canada        
+B:China         
+C:EE.UU.        
+D:Rusia         
+ANS:D
