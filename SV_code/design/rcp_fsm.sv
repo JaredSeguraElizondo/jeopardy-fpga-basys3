@@ -6,28 +6,41 @@ module rcp_fsm (
     input  logic rst_rcp,    // reset interno desde main_fsm
 
     // Entradas jugadores
-    input  logic btn_j1,
-    input  logic btn_j2,
+    input  logic fpga_ok,
+    input  logic pc_ok,
 
-    // Salidas
-    output logic j1_done,
-    output logic j2_done,
+    // Entradas registro de tiempo
+    input logic R1_valid,
+    input logic R2_valid,
+
+    // Salidas de registro de tiempo
+    output logic save_time_j1,
+    output logic save_time_j2,
+    output logic time_rst,
+
+    //Salidas hacia el bloque evaluador de respuestas 
+    output logic check_j1,
+    output logic check_j2,
+    output logic eval_en,
+
+    //Salidas hacia fsm principal
     output logic play_rcp    // ambos listos
 );
 
-typedef enum logic [1:0] {
-    IDLE,
-    WAIT_P1,
-    WAIT_P2,
-    DONE
+typedef enum logic [2:0] {
+    IDLE = 3'b000,
+    MONITOR = 3'b001,
+    REG_J1 = 3'b010,
+    REG_J2 = 3'b011,
+    DONE = 3'b100
 } state_t;
 
-state_t state, next_stat
+state_t state, next_state
 
 // Registro de estado.
 
 always_ff @(posedge clk) begin
-    if (rst || rst_rcp)
+    if (rst_rcp)
         state <= IDLE;
     else
         state <= next_state;
@@ -43,28 +56,25 @@ always_comb begin
 
         IDLE: begin
             if (en_rcp)
-                next_state = WAIT_P1;
+                next_state = MONITOR;
         end
 
-        // Espera a que al menos uno responda
-        WAIT_P1: begin
-            if (btn_j1 && btn_j2)
-                next_state = DONE;
-            else if (btn_j1)
-                next_state = WAIT_P2;
-            else if (btn_j2)
-                next_state = WAIT_P2;
+        MONITOR: begin
+        if(fpga_ok && ˜R1_valid) next_state = REG_J1;
+        else if(pc_ok && ˜R2_valid) next_state = REG_J2;
+        else if(R1_valid && R2_valid) next_state = DONE;
         end
 
-        // Ya uno respondió → espera el otro
-        WAIT_P2: begin
-            if (btn_j1 && btn_j2)
-                next_state = DONE;
+        REG_J1: begin
+        next_state = MONITOR;
+        end
+
+        REG_J2: begin
+        next_state = MONITOR;
         end
 
         DONE: begin
-            // Se mantiene hasta reset externo (rst_rcp)
-            next_state = DONE;
+        next_state = IDLE;
         end
 
         default: begin
@@ -74,33 +84,57 @@ always_comb begin
     endcase
 end
 
+// Lógica de salida
+
 always_comb begin
 
     // Defaults
-    j1_done = 1'b0;
-    j2_done = 1'b0;
+    save_time_j1 = 1'b0;
+    save_time_j2 = 1'b0;
+    time_rst = 1'b0;
+    check_j1 = 1'b0;
+    check_j2 = 1'b0;
+    eval_en = 1'b0;
     play_rcp = 1'b0;
 
     case (state)
 
         IDLE: begin
-            // todo en 0
+            time_rst = 1'b1;
         end
 
-        WAIT_P1: begin
-            // nadie confirmado aún
+        MONITOR: begin
+        save_time_j1 = 1'b0;
+        save_time_j2 = 1'b0;
+        time_rst = 1'b0;
+        check_j1 = 1'b0;
+        check_j2 = 1'b0;
+        eval_en = 1'b0;
+        play_rcp = 1'b0;
         end
 
-        WAIT_P2: begin
-            // uno ya respondió (pero Moore → no distinguimos cuál aquí)
+        REG_J1: begin
+        save_time_j1 = 1'b1;
+        check_j1 = 1'b1;
+        end
+        
+        REG_J2: begin
+        save_time_j2 = 1'b1;
+        check_j2 = 1'b1;
         end
 
         DONE: begin
-            j1_done = 1'b1;
-            j2_done = 1'b1;
-            play_rcp = 1'b1;
+        eval_en = 1'b1;
+        play_rcp = 1'b1;
         end
-
+    default:
+    save_time_j1 = 1'b0;
+    save_time_j2 = 1'b0;
+    time_rst = 1'b0;
+    check_j1 = 1'b0;
+    check_j2 = 1'b0;
+    eval_en = 1'b0;
+    play_rcp = 1'b0;
     endcase
 end
 endmodule
