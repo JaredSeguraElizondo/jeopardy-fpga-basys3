@@ -25,14 +25,16 @@ module evaluador_respuestas #(
 
     // Salidas
     output logic [1:0]  resultado_eval,   // 00=nadie, 01=J1, 10=J2
-    output logic [1:0]  ganador
+    output logic win_j1,                  // Indica si gana J1 (resultado_eval == 01)
+    output logic win_j2                   // Indica si gana J2 (resultado_eval == 10)
 );
 
     logic j1_correcto, j2_correcto;
 
     always_comb begin
         resultado_eval = 2'b00;
-        ganador    = 2'b00;
+        win_j1 = 1'b0;
+        win_j2 = 1'b0;
 
         // Un jugador solo cuenta si respondio (R_valid) y acerto
         j1_correcto = R1_valid && (respuesta_fpga == respuesta_correcta);
@@ -41,25 +43,26 @@ module evaluador_respuestas #(
         if (eval_en) begin
             if (j1_correcto && !j2_correcto) begin
                 resultado_eval = 2'b01;
-                ganador    = 2'b01;
-
-            end else if (!j1_correcto && j2_correcto) begin
+                win_j1     = 1'b1;
+            end 
+            else if (!j1_correcto && j2_correcto) begin
                 resultado_eval = 2'b10;
-                ganador    = 2'b10;
-
-            end else if (j1_correcto && j2_correcto) begin
+                win_j2     = 1'b1;
+            end 
+            else if (j1_correcto && j2_correcto) begin
                 // Gana quien respondio mas rapido (menor tiempo transcurrido)
                 // Empate exacto: prioridad fija a J1
-                if (timestamp_j1 <= timestamp_j2) // Si J1 es mas rapido o empate, gana J1
-                    resultado_eval = 2'b01;  // J1 gana
-                else // J2 es mas rapido
-                    resultado_eval = 2'b10;  // J2 gana
+                if (timestamp_j1 <= timestamp_j2) begin
+                    // Si J1 es mas rapido o empate, gana J1
+                    resultado_eval = 2'b01;
+                    win_j1 = 1'b1; 
+                end 
+                else begin
+                    // J2 es mas rapido
+                    resultado_eval = 2'b10;
+                    win_j2 = 1'b1;
+                end
             end
-            default: begin
-                resultado_eval = 2'b00;
-                ganador    = 2'b00;
-                 // Si ninguno es correcto: resultado_eval = 00, ganador = 00 (no hay ganador) (defaults)
-            end 
         end
     end
 

@@ -5,7 +5,7 @@ module time_reg#(
 )(
     input  logic             clk,
     input  logic             rst,
-    input  logic [COUNT-1:0] count, 
+    input  logic [COUNT-1:0] count, // Conteo del temporizador 
     input  logic             save_time_j1,
     input  logic             save_time_j2,
     output logic             R1_valid,

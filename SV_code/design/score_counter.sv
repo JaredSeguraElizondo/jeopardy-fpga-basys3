@@ -14,15 +14,21 @@ module score_counter #(
     output logic [W-1:0] score_j2
 );
 
-    always_ff @(posedge clk or posedge rst) begin
+logic [W-1:0] score_j1_reg, score_j2_reg;
+
+    always_ff @(negedge clk) begin
         if (rst) begin
-            score_j1 <= '0;
-            score_j2 <= '0;
+            score_j1_reg <= '0;
+            score_j2_reg <= '0;
         end
         else begin
-            if (win_j1) score_j1 <= score_j1 + 1'b1;
-            if (win_j2) score_j2 <= score_j2 + 1'b1;
+            if (win_j1) score_j1_reg <= score_j1_reg + 1'b1;
+            if (win_j2) score_j2_reg <= score_j2_reg + 1'b1;
         end
     end
+
+    assign score_j1 = score_j1_reg;
+    assign score_j2 = score_j2_reg;
+
 
 endmodule
