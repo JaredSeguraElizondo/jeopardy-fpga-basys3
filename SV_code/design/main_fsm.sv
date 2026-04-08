@@ -15,10 +15,8 @@ module main_fsm (
 
     // ── Entradas de control ───────────────────────────────────────────────
     input  logic        game_done,      // Contador de rondas >= 7
-    input  logic        show_done,      // Scroll CTL: presentación inicial lista
     input  logic        timeout,        // Temporizador: tiempo de ronda agotado
     input  logic        play_rcp,       // FSM Recepción: ambos jugadores confirmaron
-    input  logic        hay_ganador,    // Evaluador: al menos un jugador correcto
     input  logic [1:0]  resultado_eval, // Evaluador: 00=nadie, 01=J1, 10=J2
 
     // ── Salidas hacia Contador de Rondas ──────────────────────────────────
@@ -44,6 +42,8 @@ module main_fsm (
     output logic        eval_en,        // Habilita el evaluador de respuestas
 
     // ── Salidas hacia Visualización y Salidas ─────────────────────────────
+    output logic mostrar_opciones_i,  // Indica que se deben mostrar las opciones
+    output logic mostrar_pregunta_i,
     output logic [2:0]  estado_juego,   // Codifica el estado actual del juego
     output logic [1:0]  resultado_ronda // Resultado de la ronda evaluada
 );
@@ -114,7 +114,6 @@ module main_fsm (
         end
 
         SHOW: begin
-            if (show_done)
                 next_state = WAIT_R;
         end
 
@@ -160,6 +159,8 @@ end
     eval_en            = 1'b0;
 
     estado_juego       = 3'b000;
+    mostrar_opciones_i     = 1'b0;
+    mostrar_pregunta_i       = 1'b0;
 
     // Logica de salida
     case (state)
@@ -179,9 +180,11 @@ end
         SHOW: begin
             scroll_en    = 1'b1;
             estado_juego = 3'b010;
+            mostrar_opciones_i = 1'b1;
         end
 
         WAIT_R: begin
+            mostrar_opciones_i = 1'b1;
             iniciar_ronda = 1'b1;
             scroll_en     = 1'b1;
             en_rcp        = 1'b1;

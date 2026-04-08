@@ -15,7 +15,8 @@ module temporizador #(
     always_ff @(negedge clk) begin
         if (rst) begin
             count_reg <= '0;
-        end else if (en) begin
+        end 
+        else if (en) begin
             if (count_reg == (FREQ * TIME) - 1)
                 count_reg <= '0;
             else
