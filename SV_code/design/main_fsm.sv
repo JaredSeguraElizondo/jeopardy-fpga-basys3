@@ -30,10 +30,6 @@ module main_fsm (
     // ── Salidas hacia Memoria ─────────────────────────────────────────────
     output logic        solicitar_pregunta, // Pulso: pide nueva pregunta al banco
 
-    // ── Salidas hacia Scroll CTL ──────────────────────────────────────────
-    output logic        scroll_en,      // Habilita el controlador de scroll
-    output logic        scroll_rst,     // Resetea scroll y opcion_seleccionada a A
-
     // ── Salidas hacia FSM de Recepción ────────────────────────────────────
     output logic        en_rcp,         // Habilita la FSM de Recepción
     output logic        rst_rcp,        // Resetea la FSM de Recepción
@@ -53,12 +49,13 @@ module main_fsm (
     // =========================================================================
     typedef enum logic [2:0] {
         IDLE     = 3'b000,
-        SEL_Q    = 3'b001,
-        SHOW     = 3'b010,
-        WAIT_R   = 3'b011,
-        CHECK    = 3'b100,
-        STEP     = 3'b101,
-        END_GAME = 3'b110
+        ROUND_Q  = 3'b001,
+        SEL_Q    = 3'b010,
+        SHOW     = 3'b011,
+        WAIT_R   = 3'b100,
+        CHECK    = 3'b101,
+        STEP     = 3'b110,
+        END_GAME = 3'b111
     } state_t;
 
     state_t state, next_state;
@@ -105,7 +102,13 @@ module main_fsm (
     case (state)
 
         IDLE: begin
-            if (game_done) 
+            next_state = ROUND_Q;
+        end
+
+        ROUND_Q: begin
+            if (game_done)
+            next_state = END_GAME;
+            else 
             next_state = SEL_Q;
         end
 
@@ -120,6 +123,8 @@ module main_fsm (
         WAIT_R: begin
             if (timeout || play_rcp)
                 next_state = CHECK;
+            else 
+                next_state = WAIT_R;
         end
 
         CHECK: begin
@@ -131,7 +136,7 @@ module main_fsm (
         end
 
         END_GAME: begin
-            next_state = IDLE;
+            next_state = END_GAME;
         end
 
         default: begin
@@ -150,9 +155,6 @@ end
 
     solicitar_pregunta = 1'b0;
 
-    scroll_en          = 1'b0;
-    scroll_rst         = 1'b0;
-
     en_rcp             = 1'b0;
     rst_rcp            = 1'b0;
 
@@ -163,13 +165,16 @@ end
     mostrar_pregunta_i       = 1'b0;
 
     // Logica de salida
-    case (state)
+    case (state) 
         IDLE: begin
-            round_rst        = 1'b1;
-            scroll_rst       = 1'b1;
+            round_rst        = 1'b1; 
             rst_rcp          = 1'b1;
             temporizador_rst = 1'b1;
             estado_juego     = 3'b000;
+        end
+
+        ROUND_Q: begin
+            estado_juego = 3'b001;
         end
 
         SEL_Q: begin
@@ -178,15 +183,15 @@ end
         end
 
         SHOW: begin
-            scroll_en    = 1'b1;
             estado_juego = 3'b010;
             mostrar_opciones_i = 1'b1;
+            mostrar_pregunta_i = 1'b1;
         end
 
         WAIT_R: begin
             mostrar_opciones_i = 1'b1;
+            mostrar_pregunta_i = 1'b1;
             iniciar_ronda = 1'b1;
-            scroll_en     = 1'b1;
             en_rcp        = 1'b1;
             estado_juego  = 3'b011;
         end
@@ -199,15 +204,11 @@ end
 
         STEP: begin
             round_inc    = 1'b1;
-            scroll_rst   = 1'b1;
-            rst_rcp      = 1'b1;
             estado_juego = 3'b101;
         end
 
         END_GAME: begin
-            scroll_rst   = 1'b1;
-            rst_rcp      = 1'b1;
-            estado_juego = 3'b110;
+            estado_juego = 3'b111;
         end
 
         default: begin

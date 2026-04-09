@@ -31,9 +31,6 @@ module rcp_fsm (
     output logic save_time_j2,  // Pulso: captura timestamp de J2
     output logic time_rst,      // Limpia ambos registros de timestamp
 
-    // ── Salidas hacia evaluador de respuestas ─────────────────────────────
-    output logic eval_en,       // Habilita cálculo final del evaluador
-
     // ── Salidas hacia main_fsm ────────────────────────────────────────────
     output logic play_rcp       // Ambos jugadores han confirmado
 );
@@ -147,7 +144,6 @@ module rcp_fsm (
         save_time_j1 = 1'b0;
         save_time_j2 = 1'b0;
         time_rst     = 1'b0;
-        eval_en      = 1'b0;
         play_rcp     = 1'b0;
 
         case (state)
@@ -184,7 +180,6 @@ module rcp_fsm (
             // Permanece activo hasta rst_rcp.
             // -----------------------------------------------------------------
             DONE : begin
-                eval_en  = 1'b1;
                 play_rcp = 1'b1;
             end
 
@@ -192,7 +187,6 @@ module rcp_fsm (
                 save_time_j1 = 1'b0;
                 save_time_j2 = 1'b0;
                 time_rst     = 1'b0;
-                eval_en      = 1'b0;
                 play_rcp     = 1'b0;
             end
 
