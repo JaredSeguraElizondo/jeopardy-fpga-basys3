@@ -132,7 +132,7 @@ module main_fsm (
         end
 
         STEP: begin
-            next_state = IDLE;
+            next_state = ROUND_Q;
         end
 
         END_GAME: begin
