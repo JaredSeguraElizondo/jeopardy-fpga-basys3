@@ -17,7 +17,6 @@ module main_fsm (
     input  logic        game_done,      // Contador de rondas >= 7
     input  logic        timeout,        // Temporizador: tiempo de ronda agotado
     input  logic        play_rcp,       // FSM Recepción: ambos jugadores confirmaron
-    input  logic [1:0]  resultado_eval, // Evaluador: 00=nadie, 01=J1, 10=J2
 
     // ── Salidas hacia Contador de Rondas ──────────────────────────────────
     output logic        round_rst,      // Resetea el contador de rondas
@@ -40,8 +39,7 @@ module main_fsm (
     // ── Salidas hacia Visualización y Salidas ─────────────────────────────
     output logic mostrar_opciones_i,  // Indica que se deben mostrar las opciones
     output logic mostrar_pregunta_i,
-    output logic [2:0]  estado_juego,   // Codifica el estado actual del juego
-    output logic [1:0]  resultado_ronda // Resultado de la ronda evaluada
+    output logic [2:0]  estado_juego   // Codifica el estado actual del juego
 );
 
     // =========================================================================
@@ -59,25 +57,6 @@ module main_fsm (
     } state_t;
 
     state_t state, next_state;
-
-    // =========================================================================
-    // Registro de resultado de ronda
-    // Tipo   : registro controlado por la FSM → reset SÍNCRONO activo en alto
-    // Se captura en CHECK para mantener el valor estable hacia Visualización
-    // durante los estados STEP y END_GAME.
-    // =========================================================================
-    logic [1:0] resultado_ronda_reg;
-
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            resultado_ronda_reg <= 2'b00;
-        end
-        else if (state == CHECK) begin
-            resultado_ronda_reg <= resultado_eval;
-        end
-    end
-
-    assign resultado_ronda = resultado_ronda_reg;
 
     // =========================================================================
     // Registro de estado (secuencial)
@@ -179,11 +158,11 @@ end
 
         SEL_Q: begin
             solicitar_pregunta = 1'b1;
-            estado_juego       = 3'b001;
+            estado_juego       = 3'b010;
         end
 
         SHOW: begin
-            estado_juego = 3'b010;
+            estado_juego = 3'b011;
             mostrar_opciones_i = 1'b1;
             mostrar_pregunta_i = 1'b1;
         end
@@ -193,18 +172,18 @@ end
             mostrar_pregunta_i = 1'b1;
             iniciar_ronda = 1'b1;
             en_rcp        = 1'b1;
-            estado_juego  = 3'b011;
+            estado_juego  = 3'b100;
         end
 
         CHECK: begin
             eval_en      = 1'b1;
             rst_rcp      = 1'b1;
-            estado_juego = 3'b100;
+            estado_juego = 3'b101;
         end
 
         STEP: begin
             round_inc    = 1'b1;
-            estado_juego = 3'b101;
+            estado_juego = 3'b110;
         end
 
         END_GAME: begin

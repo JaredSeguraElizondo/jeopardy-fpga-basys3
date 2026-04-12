@@ -163,35 +163,35 @@ module tb_main_fsm;
         verificar("SEL_Q: solicitar_pregunta=1",
             1'b0, 1'b0, 1'b0, 1'b0,
             1'b1, 1'b0, 1'b0, 1'b0,
-            1'b0, 1'b0, 3'b001);
+            1'b0, 1'b0, 3'b010);
 
         // SEL_Q → SHOW
         ciclo(1'b0, 1'b0, 1'b0, 2'b00);
         verificar("SHOW: mostrar_opciones=1, mostrar_pregunta=1",
             1'b0, 1'b0, 1'b0, 1'b0,
             1'b0, 1'b0, 1'b0, 1'b0,
-            1'b1, 1'b1, 3'b010);
+            1'b1, 1'b1, 3'b011);
 
         // SHOW → WAIT_R
         ciclo(1'b0, 1'b0, 1'b0, 2'b00);
         verificar("WAIT_R: iniciar_ronda=1, en_rcp=1",
             1'b0, 1'b0, 1'b1, 1'b0,
             1'b0, 1'b1, 1'b0, 1'b0,
-            1'b1, 1'b1, 3'b011);
+            1'b1, 1'b1, 3'b100);
 
         // WAIT_R permanece sin timeout ni play_rcp
         ciclo(1'b0, 1'b0, 1'b0, 2'b00);
         verificar("WAIT_R persiste (sin timeout ni play_rcp)",
             1'b0, 1'b0, 1'b1, 1'b0,
             1'b0, 1'b1, 1'b0, 1'b0,
-            1'b1, 1'b1, 3'b011);
+            1'b1, 1'b1, 3'b100);
 
         // WAIT_R → CHECK por play_rcp, J1 gana
         ciclo(1'b0, 1'b0, 1'b1, 2'b01);
         verificar("CHECK: eval_en=1, rst_rcp=1 (J1 gano)",
             1'b0, 1'b0, 1'b0, 1'b0,
             1'b0, 1'b0, 1'b1, 1'b1,
-            1'b0, 1'b0, 3'b100);
+            1'b0, 1'b0, 3'b101);
 
         // Nota: CHECK captura resultado_eval en el registro; verificamos
         // resultado_ronda en STEP donde el valor ya debe estar estable
@@ -200,7 +200,7 @@ module tb_main_fsm;
         verificar("STEP: round_inc=1",
             1'b0, 1'b1, 1'b0, 1'b0,
             1'b0, 1'b0, 1'b0, 1'b0,
-            1'b0, 1'b0, 3'b101);
+            1'b0, 1'b0, 3'b110);
 
         // Verificar que resultado_ronda se mantiene estable en STEP
         if (resultado_ronda !== 2'b01) begin
@@ -224,7 +224,7 @@ module tb_main_fsm;
         verificar("CHECK tras timeout: eval_en=1, rst_rcp=1",
             1'b0, 1'b0, 1'b0, 1'b0,
             1'b0, 1'b0, 1'b1, 1'b1,
-            1'b0, 1'b0, 3'b100);
+            1'b0, 1'b0, 3'b101);
 
         ciclo(1'b0, 1'b0, 1'b0, 2'b00); // CHECK → STEP
         if (resultado_ronda !== 2'b00) begin

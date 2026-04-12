@@ -29,8 +29,10 @@ module unidad_de_control_top #(
     output logic             solicitar_pregunta,
 
     // ── Salidas hacia Visualización ───────────────────────────────────────
+    output logic [W-1:0]     ronda,
     output logic             mostrar_pregunta_i,
     output logic             mostrar_opciones_i,
+    output logic [N-1:0]       resultado_ronda,
     output logic [2:0]       estado_juego,
 
     // ── Puntajes ──────────────────────────────────────────────────────────
@@ -64,7 +66,6 @@ module unidad_de_control_top #(
     logic [COUNT-1:0] timestamp_j1, timestamp_j2;
 
     // evaluador → main_fsm, score_counter
-    logic [N-1:0]    resultado_eval;
     logic        win_j1, win_j2;
 
     // contador_rondas → main_fsm
@@ -81,7 +82,6 @@ module unidad_de_control_top #(
         .game_done          (game_done),
         .timeout            (timeout),
         .play_rcp           (play_rcp),
-        .resultado_eval     (resultado_eval),
         .round_rst          (round_rst),
         .round_inc          (round_inc),
         .iniciar_ronda      (iniciar_ronda),
@@ -92,8 +92,7 @@ module unidad_de_control_top #(
         .eval_en            (eval_en),
         .mostrar_opciones_i (mostrar_opciones_i),
         .mostrar_pregunta_i (mostrar_pregunta_i),
-        .estado_juego       (estado_juego),
-        .resultado_ronda    ()  // No se expone en el top
+        .estado_juego       (estado_juego)
     );
 
     // ── FSM de Recepción ──────────────────────────────────────────────────
@@ -152,7 +151,7 @@ module unidad_de_control_top #(
         .timestamp_j2      (timestamp_j2),
         .R1_valid          (R1_valid),
         .R2_valid          (R2_valid),
-        .resultado_eval    (resultado_eval),
+        .resultado_eval    (resultado_ronda),
         .win_j1            (win_j1),
         .win_j2            (win_j2)
     );
@@ -163,7 +162,7 @@ module unidad_de_control_top #(
         .rst      (round_rst),
         .en       (round_inc),
         .game_done(game_done),
-        .ronda    ()  // No se expone en el top
+        .ronda    (ronda)  
     );
 
     // ── Contador de Puntaje ───────────────────────────────────────────────
