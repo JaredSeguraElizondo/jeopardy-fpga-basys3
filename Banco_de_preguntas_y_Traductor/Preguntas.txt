@@ -1,0 +1,59 @@
+Q01
+Cual es el rio mas largo?
+A:Nilo  C:Amzon
+B:Yangt D:Missi
+A
+
+Q02
+Cuantos lados tiene un hexagono?
+A:Cinco C:Siete
+B:Seis  D:Ocho 
+B
+
+Q03
+En que continente esta Egipto?
+A:Asia  C:Europ
+B:Ameri D:Afric
+D
+
+Q04
+Cual es el planeta mas grande?
+A:Marte C:Satrn
+B:Venus D:Jupit
+D
+
+Q05
+Cuantos huesos tiene el humano?
+A:106   C:306  
+B:206   D:406  
+B
+
+Q06
+Quien pinto la Mona Lisa?
+A:Picso C:Monet
+B:Dvinc D:Gogh 
+B
+
+Q07
+Que gas abunda mas en el aire?
+A:Oxign C:CO2  
+B:Argon D:Nitro
+D
+
+Q08
+En que pais esta la GranMuralla?
+A:Japon C:India
+B:China D:Corea
+B
+
+Q09
+Cuantos colores en el arco iris?
+A:Cinco C:Siete
+B:Seis  D:Ocho 
+C
+
+Q10
+Cual es el oceano mas grande?
+A:Artic C:India
+B:Atlnt D:Pacif
+D
