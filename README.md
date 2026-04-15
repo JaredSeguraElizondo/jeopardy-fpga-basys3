@@ -370,6 +370,107 @@ una semilla inicial y confirmar la selección. La señal `pregunta_usada` (retro
 desde la Memoria de Pregunta) indica qué preguntas ya fueron jugadas para evitar repetición.
 Cuando encuentra una pregunta válida, activa `q_valid` y coloca el índice en `consulta_sel[3:0]`.
 
+### Bloque: Máquina de Estados (FSM)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Controlar la secuencia de búsqueda de pregunta no usada |
+| **Entradas** | `solicitar_i`, `confirmar_i`, `candidato_valido` |
+| **Salidas** | `lfsr_en`, `q_valid_o`, `pregunta_sel_o` |
+| **Explicación** | Estados: IDLE → SEARCHING → FOUND. En SEARCHING avanza LFSR hasta hallar candidato válido. |
+
+### Bloque: LFSR (4 bits)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Generar números pseudoaleatorios entre 1 y 15 |
+| **Entradas** | `clk_i`, `rst_i`, `en_i`, `seed_i`, `load_i` |
+| **Salidas** | `q_o[3:0]` |
+| **Explicación** | Registro de desplazamiento con realimentación XOR. Produce secuencia de 2⁴-1 valores. |
+
+### Bloque: Comparador (rango + usado)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Verificar si el valor del LFSR es válido (1-10 y no usado) |
+| **Entradas** | `lfsr_val[3:0]`, `pregunta_usada_i` |
+| **Salidas** | `candidato_valido` |
+| **Explicación** | Compara lfsr_val con 1 y 10, y AND con NOT usado. |
+
+### Bloque: Restador
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Convertir rango 1-10 a 0-9 (índice de pregunta) |
+| **Entradas** | `lfsr_val[3:0]` |
+| **Salidas** | `pregunta_sel_o[3:0]` |
+| **Explicación** | Resta 1 al valor del LFSR cuando es válido. |
+
+---
+
+## Cuarto Nivel – Módulo LFSR (4 bits)
+
+###  Nombre del módulo
+`lfsr`
+
+###  Diagrama modular
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/SeleccionadorPreguntas_3Nivel.png?ref_type=heads" width="800">
+
+###  Objetivo
+Generar una secuencia pseudoaleatoria de 4 bits usando realimentación lineal.
+
+###  Entradas
+- `clk_i`: reloj
+- `rst_i`: reset síncrono
+- `en_i`: habilitación de avance
+- `seed_i[3:0]`: semilla inicial
+- `load_i`: carga paralela de semilla
+
+###  Salidas
+- `q_o[3:0]`: valor actual del LFSR
+
+###  Relación con otros módulos
+- Alimenta a la FSM y al comparador en `question_picker`
+- Su salida determina el candidato a pregunta
+
+###  Explicación de funcionamiento
+En cada flanco de reloj, si `en_i=1` y no hay reset, el registro se desplaza a la derecha introduciendo un nuevo bit calculado como XOR de los taps. Si `load_i=1`, carga `seed_i`.
+
+###  Diseño
+**Polinomio de realimentación:** x⁴ + x³ + 1 (taps en bits 4 y 3, contando desde 1)
+
+**Fórmula de realimentación:** `nuevo_bit = q3 ⊕ q2`
+
+**Tabla de verdad del feedback (para 4 bits):**
+
+| q3 | q2 | q1 | q0 | nuevo_bit |
+|----|----|----|----|-----------|
+| 0  | 0  | 0  | 0  | 0 (estado prohibido) |
+| 0  | 0  | 0  | 1  | 0 |
+| 0  | 0  | 1  | 0  | 0 |
+| 0  | 0  | 1  | 1  | 0 |
+| 0  | 1  | 0  | 0  | 1 |
+| 0  | 1  | 0  | 1  | 1 |
+| 0  | 1  | 1  | 0  | 1 |
+| 0  | 1  | 1  | 1  | 1 |
+| 1  | 0  | 0  | 0  | 1 |
+| 1  | 0  | 0  | 1  | 1 |
+| 1  | 0  | 1  | 0  | 1 |
+| 1  | 0  | 1  | 1  | 1 |
+| 1  | 1  | 0  | 0  | 0 |
+| 1  | 1  | 0  | 1  | 0 |
+| 1  | 1  | 1  | 0  | 0 |
+| 1  | 1  | 1  | 1  | 0 |
+
+**Simplificación:** `nuevo_bit = q3 ⊕ q2`
+
+**Uso de módulos integrados:** No aplica (diseño con compuertas)
+
+### i) Diagrama esquemático detallado
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/DEsqDetallado_SP.png?ref_type=heads" width="250">
+
 ---
 
 ## 3. Memoria de Pregunta (question_memory)
@@ -385,6 +486,183 @@ un índice por `consulta_sel`, expone los caracteres de la pregunta uno a uno a 
 pertenece al enunciado o a las opciones. `fin_bloque` se activa al llegar al último carácter
 del bloque actual. Cuando una ronda termina, `marcar_usada` activa el bit correspondiente
 en el registro de preguntas usadas, y `pregunta_usada` retroalimenta al Seleccionador.
+
+### Bloque: Generador de Dirección
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Calcular dirección lineal en ROM para cada carácter |
+| **Entradas** | `pregunta_sel_i[3:0]` (0-9), `contador[6:0]` (0-64) |
+| **Salidas** | `addr_final[9:0]` |
+| **Explicación** | Dirección = (pregunta × 65) + contador. Cada pregunta ocupa 65 bytes |
+
+### Bloque: ROM
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Almacenar las 10 preguntas (65 caracteres cada una) |
+| **Entradas** | `clk_i`, `addr_final[9:0]` |
+| **Salidas** | `char_o[7:0]` (carácter ASCII) |
+| **Explicación** | IP de Block Memory Generator. 650 bytes total (10×65) |
+
+### Bloque: Contador de Caracteres
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Llevar la posición actual dentro de la pregunta (0 a 64) |
+| **Entradas** | `clk_i`, `rst_i`, `next_char_i` |
+| **Salidas** | `contador[6:0]`, `fin_bloque_o` |
+| **Explicación** | Incrementa con next_char_i. Al llegar a 64, vuelve a 0 y activa fin_bloque_o |
+
+### Bloque: Decodificador de Tipo
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Clasificar región del carácter dentro de la pregunta |
+| **Entradas** | `contador[6:0]` |
+| **Salidas** | `tipo_o[1:0]` |
+| **Explicación** | 0-31→tipo=00 (texto), 32-63→tipo=01 (opciones), 64→tipo=10 (fin) |
+
+### Bloque: Registro de Preguntas Usadas
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Marcar qué preguntas ya fueron seleccionadas |
+| **Entradas** | `clk_i`, `rst_i`, `marcar_usada`, `pregunta_sel_i[3:0]`, `consulta_sel_i[3:0]` |
+| **Salidas** | `pregunta_usada_o` |
+| **Explicación** | Array de 10 bits. Escritura en índice pregunta_sel_i cuando marcar_usada=1. Lectura en índice consulta_sel_i |
+
+## Cuarto Nivel – Módulo Contador de Caracteres
+
+### Nombre del módulo
+`contador_caracteres` (parte de `question_memory`)
+
+### Diagrama modular
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/MemoriaDePreguntas_3Nivel.png?ref_type=heads" width="430">
+
+### Objetivo
+Contar de 0 a 64 cíclicamente para recorrer los caracteres de una pregunta.
+
+### Entradas
+- `clk_i`: reloj
+- `rst_i`: reset
+- `next_char_i`: pulso de avance
+
+### Salidas
+- `contador[6:0]`: valor actual (0-64)
+- `fin_bloque_o`: 1 cuando contador=64
+
+### Relación con otros módulos
+- Alimenta al generador de dirección ROM
+- Alimenta al decodificador de tipo
+- `fin_bloque_o` indica fin de pregunta al sistema superior
+
+### Explicación de funcionamiento
+En cada flanco de reloj, si `next_char_i=1` y no hay reset, el contador incrementa. Al llegar a 64, el siguiente incremento lo lleva a 0 (wrap). `fin_bloque_o` se activa cuando contador=64.
+
+### Diseño
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/i_moduloDeco.png?ref_type=heads" width="300">
+
+contador_next = (contador == 64) ? 0 : contador + 1
+fin_bloque_o = (contador == 64)
+
+**Justificación:** Se usa contador de 7 bits porque 65 valores requieren 7 bits (2⁷=128). El wrap es manual para que solo ocurra después de 64.
+
+## Cuarto Nivel – Módulo Decodificador de Tipo
+
+###  Nombre del módulo
+`decodificador_tipo` (parte de `question_memory`)
+
+###  Objetivo
+Clasificar la posición del carácter en tres regiones.
+
+###  Entradas
+- `contador[6:0]`
+
+###  Salidas
+- `tipo_o[1:0]`
+
+###  Relación con otros módulos
+Recibe contador del contador de caracteres.
+
+###  Explicación de funcionamiento
+- Si contador ≤ 31 → tipo=00 (texto enunciado)
+- Si contador ≤ 63 → tipo=01 (opciones)
+- Si contador = 64 → tipo=10 (fin de bloque)
+
+### h) Diseño
+
+**Tabla de verdad:**
+
+| Rango contador | condición                  | tipo_o[1] | tipo_o[0] |
+|----------------|----------------------------|-----------|-----------|
+| 0 a 31         | contador[6:5]=00           | 0         | 0         |
+| 32 a 63        | contador[6:5]=01           | 0         | 1         |
+| 64             | contador[6:0]=1000000      | 1         | 0         |
+
+**Simplificación:**
+
+tipo_o[1] = (contador == 64)
+tipo_o[0] = (contador[6:5] == 2'b01)
+
+**Uso de módulos integrados:** Comparadores
+
+## Cuarto Nivel – Módulo Registro de Usadas
+
+###  Nombre del módulo
+`used_reg` (parte de `question_memory`)
+
+###  Diagrama modular
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/i_ModuloRegistros.png?ref_type=heads" width="300">
+
+###  Objetivo
+Almacenar qué preguntas (0-9) ya fueron seleccionadas.
+
+###  Entradas
+- `clk_i`, `rst_i`
+- `marcar_usada`: enable de escritura
+- `pregunta_sel_i[3:0]`: índice de escritura
+- `consulta_sel_i[3:0]`: índice de lectura
+
+###  Salidas
+- `pregunta_usada_o`: 1 si consulta_sel_i ya fue usada
+
+###  Relación con otros módulos
+- Escritura desde FSM del sistema cuando se confirma pregunta
+- Lectura por el `question_picker` para verificar candidatos
+
+###  Explicación de funcionamiento
+Array de 10 flip-flops (bits). En cada ciclo, si `marcar_usada=1`, se escribe 1 en la posición `pregunta_sel_i`. Simultáneamente se lee la posición `consulta_sel_i` para salida.
+
+###  Diseño
+
+**Estructura:**
+
+used_reg[9:0] // 10 bits
+
+Escritura: used_reg[pregunta_sel_i] <= marcar_usada ? 1'b1 : used_reg[pregunta_sel_i]
+Lectura: pregunta_usada_o = used_reg[consulta_sel_i]
+
+**Justificación:** Solo se marcan usadas (nunca se desmarcan). Por eso no hay escritura de 0.
+
+**Tabla de verdad (por bit individual):**
+
+| marcar_usada | índice_match | Q_next |
+|--------------|--------------|--------|
+| 0            | X            | Q      |
+| 1            | 0            | Q      |
+| 1            | 1            | 1      |
+
+**Simplificación:** Cada bit es un flip-flop D con enable condicional.
+
+**Uso de módulos integrados:** No aplica
+
+---
+
+
 
 ---
 
@@ -633,6 +911,10 @@ Un ciclo completo de envío y recepción desde la perspectiva de la FSM es el si
 4. La FSM lee DATO RX (`addr = 2'b11`) para obtener el byte recibido.
 5. Opcionalmente, la FSM escribe en CONTROL con `wdata[1] = 0` para limpiar la bandera
    y quedar lista para la siguiente recepción.
+
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/UARTN4.jpeg?ref_type=heads" width="900">
+
 ---
 
 ## 6. Output/Input Manager 
@@ -876,6 +1158,8 @@ Ante cada flanco de reloj, los tres sub-bloques operan en paralelo de forma inde
 
 3. `pwm_buzzer` genera tono mientras la FSM mantenga `buzz_en_i` en alto, con la frecuencia indicada por `buzz_period_i`. La FSM decide cuándo activar el buzzer y con qué tono según el resultado de la ronda.
 
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/IOmanagerN4.jpeg?ref_type=heads" width="820">
+
 
 ---
 
@@ -904,6 +1188,165 @@ marcador y otros estados del juego al jugador FPGA. La FSM lo trata como un peri
 mapeado a registros: escribe datos y comandos por el bus de escritura, y lee el estado de
 ocupado (`busy`) por `lcd_rdata`. Internamente contiene su propia FSM de control del
 protocolo LCD (Enable, RS, RW), un búfer de caracteres y lógica de refresco.
+
+### Bloque: Registros de Configuración (LCD)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Almacenar comandos y datos escritos por el CPU |
+| **Entradas** | `write_enable_i`, `addr_i`, `wdata_i` |
+| **Salidas** | `reg_start`, `reg_rs`, `reg_clear`, `reg_home`, `reg_data` |
+| **Explicación** | En addr=00 escribe CONTROL, addr=01 escribe DATOS. Auto-limpiadores |
+
+### Bloque: FSM LCD
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Generar la secuencia de pulsos y temporizaciones del LCD |
+| **Entradas** | `reg_start/clear/home`, `delay_cnt_reg` |
+| **Salidas** | `lcd_rs_reg`, `lcd_en_reg`, `lcd_data_reg`, `flag_busy` |
+| **Explicación** | Estados: IDLE→SETUP→ENABLE_HIGH→ENABLE_LOW→WAIT_CMD→IDLE |
+
+### Bloque: Contador de Delays (LCD)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Generar esperas de 10, 40, 800 y 30000 ciclos |
+| **Entradas** | `clk_i`, `rst_i`, `delay_cnt_next` |
+| **Salidas** | `delay_cnt_reg`, `flag zero` |
+| **Explicación** | Cuenta descendente desde valor cargado hasta 0 |
+
+### Bloque: Display 7 Segmentos
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Mostrar 4 dígitos hexadecimales en display multiplexado |
+| **Entradas** | `clk_i`, `rst_i`, `hex_data_i[15:0]` |
+| **Salidas** | `seg_o[6:0]` (7 segmentos), `an_o[3:0]` (ánodos) |
+| **Explicación** | Barrido a ~1kHz, decodifica cada dígito a 7 segmentos |
+
+### Bloque: Contador de Refresco (7seg)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Generar la base de tiempo para multiplexar 4 dígitos |
+| **Entradas** | `clk_i`, `rst_i` |
+| **Salidas** | `refresh_cnt[16:0]` |
+| **Explicación** | Cuenta continua de 17 bits. Bits[14:13] seleccionan dígito |
+
+### Bloque: Selector de Dígito (MUX 4:1)
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Elegir qué nibble de hex_data_i se muestra |
+| **Entradas** | `refresh_cnt[14:13]`, `hex_data_i[15:0]` |
+| **Salidas** | `digit[3:0]` |
+| **Explicación** | 00→nibble0, 01→nibble1, 10→nibble2, 11→nibble3 |
+
+### Bloque: Decodificador 7 Segmentos
+
+| Elemento | Descripción |
+|----------|-------------|
+| **Objetivo** | Convertir hex a patrón de segmentos (ánodo común) |
+| **Entradas** | `digit[3:0]` |
+| **Salidas** | `seg_o[6:0]` |
+| **Explicación** | Tabla LUT: 0→1000000, 1→1111001, ... F→0001110 |
+
+---
+
+## Cuarto Nivel – Módulo FSM LCD (detallado)
+
+###  Nombre del módulo
+`lcd_peripheral` (submódulo: FSM interna)
+
+###  Diagrama modular
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/Visualizacion_3Nivel.png?ref_type=heads" width="820">
+
+###  Objetivo
+Generar la secuencia exacta de pulsos Enable y tiempos de espera para inicializar/enviar datos al LCD HD44780.
+
+###  Entradas
+- `clk_i`, `rst_i`
+- `reg_start`, `reg_clear`, `reg_home`, `reg_rs`, `reg_data`
+- `delay_cnt_reg`
+
+###  Salidas
+- `lcd_rs_next`, `lcd_en_next`, `lcd_data_next`
+- `flag_busy`
+- `state_next`, `delay_cnt_next`
+
+###  Relación con otros módulos
+- Recibe comandos desde los registros de configuración
+- Controla las salidas físicas del LCD
+- Comunica estado `busy` al bus de lectura
+
+###  Explicación de funcionamiento
+La FSM espera en IDLE. Al detectar `reg_start`, `reg_clear` o `reg_home`, configura RS y DATA, carga delay 10 ciclos, pasa a SETUP. Luego genera pulso ENABLE (40 ciclos alto, 10 bajo). Finalmente espera 800 ciclos (comando normal) o 30000 ciclos (clear/home).
+
+###  Diseño
+
+**Tabla de tiempos:**
+
+| Estado | Duración (ciclos) | Acción |
+|--------|-------------------|--------|
+| IDLE   | ∞                 | Espera comando |
+| SETUP  | 10                | Establece RS/DATA |
+| ENABLE_HIGH | 40         | E=1 |
+| ENABLE_LOW  | 10         | E=0 |
+| WAIT_CMD | 800 o 30000      | Espera ejecución LCD |
+
+**Justificación:** Basado en datasheet HD44780: setup time ≥40ns, enable pulse ≥230ns, wait command ≥37µs (clear/home ≥1.52ms). Con reloj de 50MHz (20ns ciclo), los valores son conservadores.
+
+## Cuarto Nivel – Módulo Decodificador 7 Segmentos
+
+###  Nombre del módulo
+`decodificador_7seg` (parte de `display_7seg`)
+
+###  Objetivo
+Convertir un nibble hexadecimal en patrón de 7 segmentos (ánodo común activo bajo).
+
+###  Entradas
+- `digit[3:0]`
+
+###  Salidas
+- `seg_o[6:0]` (orden: a,b,c,d,e,f,g)
+
+###  Relación con otros módulos
+Recibe el dígito del selector MUX 4:1. Entrega seg_o al display.
+
+###  Explicación de funcionamiento
+Mediante tabla de verdad mapea cada valor 0-F a 7 bits. Los segmentos se activan con '0' porque es ánodo común.
+
+###  Diseño
+
+**Tabla de verdad del decodificador 7 segmentos (ánodo común, active low):**
+
+| Dígito | d3 d2 d1 d0 | seg_a | seg_b | seg_c | seg_d | seg_e | seg_f | seg_g | Salida (gfedcba) |
+|--------|-------------|-------|-------|-------|-------|-------|-------|-------|------------------|
+| 0      | 0 0 0 0     | 0     | 0     | 0     | 0     | 0     | 0     | 1     | 1000000 |
+| 1      | 0 0 0 1     | 1     | 1     | 1     | 1     | 0     | 0     | 1     | 1111001 |
+| 2      | 0 0 1 0     | 0     | 0     | 1     | 0     | 0     | 1     | 0     | 0100100 |
+| 3      | 0 0 1 1     | 0     | 0     | 0     | 0     | 1     | 1     | 0     | 0110000 |
+| 4      | 0 1 0 0     | 1     | 0     | 0     | 1     | 1     | 0     | 0     | 0011001 |
+| 5      | 0 1 0 1     | 0     | 1     | 0     | 0     | 1     | 0     | 0     | 0010010 |
+| 6      | 0 1 1 0     | 0     | 1     | 0     | 0     | 0     | 0     | 0     | 0000010 |
+| 7      | 0 1 1 1     | 0     | 0     | 0     | 1     | 1     | 1     | 1     | 1111000 |
+| 8      | 1 0 0 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0     | 0000000 |
+| 9      | 1 0 0 1     | 0     | 0     | 0     | 0     | 1     | 0     | 0     | 0010000 |
+| A      | 1 0 1 0     | 0     | 0     | 0     | 1     | 0     | 0     | 0     | 0001000 |
+| b      | 1 0 1 1     | 1     | 0     | 0     | 0     | 0     | 0     | 1     | 1000011 |
+| C      | 1 1 0 0     | 0     | 1     | 1     | 0     | 0     | 0     | 1     | 1000110 |
+| d      | 1 1 0 1     | 1     | 0     | 0     | 0     | 0     | 1     | 0     | 0100001 |
+| E      | 1 1 1 0     | 0     | 1     | 1     | 0     | 0     | 0     | 0     | 0000110 |
+| F      | 1 1 1 1     | 0     | 1     | 1     | 1     | 0     | 0     | 0     | 0001110 |
+
+**Nota:** 
+- `0` = segmento encendido (activo bajo, ánodo común)
+- `1` = segmento apagado
+- Orden de salida `seg_o[6:0]` = {seg_g, seg_f, seg_e, seg_d, seg_c, seg_b, seg_a}
+- Los valores coinciden con el código proporcionado en el módulo `display_7seg`
+
 
 ---
 
