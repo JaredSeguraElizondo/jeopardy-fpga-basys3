@@ -38,7 +38,6 @@ def cargar_preguntas(archivo_coe: str):
 
 
 def sonar_victoria():
-    """Tono agudo de victoria en hilo separado para no bloquear UI."""
     def _play():
         winsound.Beep(1000, 150)
         winsound.Beep(1200, 150)
@@ -47,7 +46,6 @@ def sonar_victoria():
 
 
 def sonar_derrota():
-    """Tono grave de derrota en hilo separado para no bloquear UI."""
     def _play():
         winsound.Beep(400, 300)
         winsound.Beep(300, 400)
@@ -65,12 +63,14 @@ class JeopardyPC(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Jeopardy — Terminal PC")
-        self.geometry("900x620")
+        self.geometry("900x680")
         self.resizable(False, False)
         self.configure(fg_color=self.C_BG)
 
-        self.respondido  = False
-        self.serial_port = None
+        self.respondido    = False
+        self.serial_port   = None
+        self._idx_actual   = None
+        self._opciones_texto = ""
 
         self.banco, self.respuestas = cargar_preguntas(ARCHIVO_COE)
 
@@ -80,7 +80,7 @@ class JeopardyPC(ctk.CTk):
     def _build_ui(self):
         self.grid_columnconfigure((0, 1), weight=1)
 
-        # Boton inicio
+        # --- Boton inicio ---
         ctk.CTkButton(
             self, text="start game",
             command=self._iniciar,
@@ -89,7 +89,7 @@ class JeopardyPC(ctk.CTk):
             text_color="white", corner_radius=25, height=44
         ).grid(row=0, column=0, columnspan=2, padx=80, pady=(24, 12), sticky="ew")
 
-        # Caja de pregunta
+        # --- Caja de pregunta ---
         frame_q = ctk.CTkFrame(
             self, fg_color="white", corner_radius=18,
             border_width=1, border_color=self.C_PRIMARY
@@ -104,9 +104,20 @@ class JeopardyPC(ctk.CTk):
         self.txt_pregunta.pack(padx=16, pady=16)
         self._set_texto("Presiona start game para comenzar.")
 
-        # Botones A B C D
+        # --- Boton ver opciones ---
+        self.btn_ver_opciones = ctk.CTkButton(
+            self, text="ver opciones  v",
+            command=self._revelar_opciones,
+            font=("Georgia", 14, "bold"),
+            fg_color=self.C_PRIMARY, hover_color="#DDCEB0",
+            text_color=self.C_TEXT, corner_radius=20, height=38,
+            state="disabled"
+        )
+        self.btn_ver_opciones.grid(row=2, column=0, columnspan=2, padx=80, pady=(0, 6), sticky="ew")
+
+        # --- Botones A B C D ---
         frame_opts = ctk.CTkFrame(self, fg_color="transparent")
-        frame_opts.grid(row=2, column=0, columnspan=2, pady=18)
+        frame_opts.grid(row=3, column=0, columnspan=2, pady=18)
         frame_opts.grid_columnconfigure((0, 1), weight=1)
 
         self.buttons = {}
@@ -123,12 +134,12 @@ class JeopardyPC(ctk.CTk):
             btn.grid(row=i // 2, column=i % 2, padx=18, pady=10)
             self.buttons[letra] = btn
 
-        # Status
+        # --- Status ---
         self.lbl_status = ctk.CTkLabel(
             self, text="status: desconectado",
             font=("Georgia", 12, "italic"), text_color=self.C_TEXT
         )
-        self.lbl_status.grid(row=3, column=0, columnspan=2, pady=12)
+        self.lbl_status.grid(row=4, column=0, columnspan=2, pady=12)
 
     def _conectar_uart(self):
         try:
@@ -175,14 +186,48 @@ class JeopardyPC(ctk.CTk):
     def _mostrar_pregunta(self, idx: str):
         if idx not in self.banco:
             return
+
+        self._idx_actual = idx
         num = int(idx) + 1
-        self._set_texto(f"pregunta {num}\n\n{self.banco[idx]}")
+
+        # Separar enunciado de opciones
+        partes = self.banco[idx].split("\n\n", 1)
+        enunciado = partes[0]
+        self._opciones_texto = partes[1] if len(partes) > 1 else ""
+
+        self._set_texto(f"pregunta {num}\n\n{enunciado}")
         self.respondido = False
+
+        # Opciones ocultas, botones A-D deshabilitados
+        for btn in self.buttons.values():
+            btn.configure(state="disabled", fg_color=self.C_PRIMARY, text_color=self.C_TEXT)
+
+        # Habilitar boton de revelar
+        self.btn_ver_opciones.configure(state="normal")
+
+        self.lbl_status.configure(
+            text=f"pregunta {num} activa — presiona 'ver opciones' para continuar",
+            text_color="#E5A800"
+        )
+
+    def _revelar_opciones(self):
+        # Insertar opciones al final del texto
+        self.txt_pregunta.configure(state="normal")
+        self.txt_pregunta.insert("end", f"\n\n{self._opciones_texto}")
+        self.txt_pregunta.configure(state="disabled")
+
+        # Habilitar botones de respuesta
         for btn in self.buttons.values():
             btn.configure(state="normal", fg_color=self.C_GREEN, text_color="white")
-        self.lbl_status.configure(
-            text=f"pregunta {num} activa", text_color="#E5A800"
-        )
+
+        # Deshabilitar boton de revelar
+        self.btn_ver_opciones.configure(state="disabled")
+
+        if self._idx_actual is not None:
+            num = int(self._idx_actual) + 1
+            self.lbl_status.configure(
+                text=f"pregunta {num} activa", text_color="#E5A800"
+            )
 
     def _responder(self, letra: str):
         if self.respondido or not (self.serial_port and self.serial_port.is_open):
@@ -199,11 +244,11 @@ class JeopardyPC(ctk.CTk):
     def _resultado(self, correcto: bool):
         self.txt_pregunta.configure(state="normal")
         if correcto:
-            self.txt_pregunta.insert("end", "\n\n✅  correcto")
+            self.txt_pregunta.insert("end", "\n\n correcto")
             self.lbl_status.configure(text="ronda terminada", text_color=self.C_GREEN)
             sonar_victoria()
         else:
-            self.txt_pregunta.insert("end", "\n\n❌  incorrecto")
+            self.txt_pregunta.insert("end", "\n\n incorrecto")
             self.lbl_status.configure(text="ronda terminada", text_color=self.C_ROSE)
             sonar_derrota()
         self.txt_pregunta.configure(state="disabled")
