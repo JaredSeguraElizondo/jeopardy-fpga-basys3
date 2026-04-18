@@ -35,7 +35,7 @@ module game_core (
     localparam logic [7:0] MSG_L1 [0:15] = '{
         "P","u","l","s","a"," ","A","r","r","i","b","a"," ","-",">"," "};
     localparam logic [7:0] MSG_L2 [0:15] = '{
-        "o"," ","'","3","'"," ","e","n"," ","P","C"," "," "," "," "," "};
+        "P","R","E","S"," ","S","T","A","R","T"," "," "," "," "," "," "};
 
     typedef enum logic [4:0] {
         ST_BOOT       = 5'd0,
@@ -167,9 +167,9 @@ module game_core (
             // ST_READ_ROM: char_i = byte[contador-1] (latencia 1 ciclo de la ROM)
             //              capturamos bytes 0-63 normalmente
             //              cuando fin_bloque_i=1 (contador==64), char_i = byte[63]
-            //              todavia NO es el byte 64
+            //              todavia no es el byte 64
             // ST_ROM_LAST: un ciclo extra sin next_char_o, ahora char_i = byte[64]
-            //              aqui capturamos la respuesta correcta
+            //              aqui se captura la respuesta correcta
             if (state_reg == ST_READ_ROM) begin
                 if (!fin_bloque_i) begin
                     // Bytes 0-63
@@ -179,10 +179,10 @@ module game_core (
                         buf_opciones[buf_idx[4:0]] <= char_i;
                     buf_idx <= buf_idx + 1;
                 end
-                // Si fin_bloque_i=1 no capturamos aqui, lo hacemos en ST_ROM_LAST
+                // Si fin_bloque_i=1 no se captura aqui, se hace en ST_ROM_LAST
             end
 
-            // ST_ROM_LAST:  addr=64 presentada, ROM procesando (1 ciclo latencia)
+            // ST_ROM_LAST:  addr=64 presentada, ROM procesando 
             // ST_ROM_LAST2: char_i = byte[64] = respuesta correcta
             if (state_reg == ST_ROM_LAST2) begin
                 respuesta_correcta <= char_i;
@@ -206,7 +206,7 @@ module game_core (
             if (state_reg == ST_IDLE && state_next == ST_WAIT_Q)
                 solicitar_reg <= 1'b1;
 
-            // Playing
+            // Jugando
             if (state_reg == ST_PLAYING) begin
                 if (btn_pulse_i[0]) fpga_sel_idx <= fpga_sel_idx + 1;
                 if (btn_pulse_i[1]) view_mode    <= ~view_mode;
@@ -388,14 +388,13 @@ module game_core (
                     state_next = (init_idx == 3) ? ST_REFRESH_D : ST_INIT_D;
 
             // Limpiar buffer UART antes de escuchar
-            // Evita que basura residual dispare UART_READ en loop
             ST_IDLE_CLR: begin
                 uart_we_o    = 1; uart_addr_o = 2'b00; uart_wdata_o = 32'd0;
                 state_next   = ST_IDLE;
             end
 
             ST_IDLE:
-                // Boton fisico tiene prioridad sobre UART en IDLE
+                
                 if (btn_pulse_i[2] || pc_ok_pressed)
                     state_next = ST_WAIT_Q;
                 else if (uart_rdata_i[1])
