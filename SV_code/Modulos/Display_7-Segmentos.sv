@@ -1,23 +1,4 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 03/24/2026 06:52:00 PM
-// Design Name: 
-// Module Name: Display 7-Segmentos
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:\
-/////////////////////////////////////////////////////////
-`timescale 1ns / 1ps
 
 module display_7seg (
     input  logic        clk_i,       // Reloj de 16MHz
