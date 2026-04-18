@@ -62,7 +62,7 @@ class JeopardyPC(ctk.CTk):
 
     def __init__(self):
         super().__init__()
-        self.title("Jeopardy — Terminal PC")
+        self.title("Jeopardy Totalmente funcional y bonito")
         self.geometry("900x680")
         self.resizable(False, False)
         self.configure(fg_color=self.C_BG)
