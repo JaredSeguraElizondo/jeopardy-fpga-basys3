@@ -16,7 +16,7 @@ module top_jeopardy (
     output logic [7:0]  lcd_data
 );
 
-    // ── Reloj y reset ─────────────────────────────────────────
+    // Reloj y reset 
     logic clk_16mhz, locked;
     logic sys_rst;
     assign sys_rst = rst_btn | ~locked;
@@ -28,7 +28,7 @@ module top_jeopardy (
         .locked   (locked)
     );
 
-    // ── Cables internos ───────────────────────────────────────
+    //  Cables internos 
     logic [2:0]  btn_pulse;
     logic [15:0] hex_data;
     logic        sound_play, sound_correct;
@@ -64,7 +64,6 @@ module top_jeopardy (
     logic load_seed;
     assign load_seed = btn_pulse[2];
 
-    // ── Instancias ────────────────────────────────────────────
 
     // 1. UI Controller
     // buzzer_o no se usa aqui (el audio lo maneja sound_manager)
