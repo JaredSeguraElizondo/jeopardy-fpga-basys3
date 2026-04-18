@@ -1,10 +1,5 @@
 `timescale 1ns / 1ps
 
-// ============================================================
-// question_memory.sv
-// Se agrega puerto consulta_sel_i para que el picker pueda
-// verificar si un candidato esta usado sin afectar pregunta_sel_i
-// ============================================================
 
 module question_memory (
     input  logic       clk_i,
