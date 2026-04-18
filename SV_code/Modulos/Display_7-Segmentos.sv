@@ -11,7 +11,7 @@ module display_7seg (
     logic [16:0] refresh_cnt; 
     logic [3:0]  digit;
 
-    // 1. Contador Síncrono (Esto ROMPE cualquier bucle)
+    // 1. Contador Síncrono 
     always_ff @(posedge clk_i) begin
         if (rst_i) refresh_cnt <= 0;
         else       refresh_cnt <= refresh_cnt + 1;
