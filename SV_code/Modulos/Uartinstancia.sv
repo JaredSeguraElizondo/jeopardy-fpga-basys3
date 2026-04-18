@@ -1,14 +1,6 @@
 `timescale 1ns / 1ps
 
-// ============================================================
-// Uartinstancia.sv (uart_peripheral) — version restaurada
-//
-// Mapeo de addr_i (compatible con FSM):
-//   2'b00 : CONTROL — wdata[0]=send, wdata[1]=new_rx(W clears)
-//           rdata   — bit0=TX_busy, bit1=RX_available
-//   2'b10 : DATO TX — wdata[7:0]
-//   2'b11 : DATO RX — rdata[7:0]
-// ============================================================
+
 
 module uart_peripheral (
     input  logic        clk_i,
@@ -50,7 +42,7 @@ module uart_peripheral (
             reg_data_tx     <= 0;
             reg_data_rx     <= 0;
         end else begin
-            // Recepcion hardware (prioridad)
+            // Recepcion hardware 
             if (uart_rx_data_rdy) begin
                 reg_ctrl_new_rx <= 1'b1;
                 reg_data_rx     <= uart_data_out;
