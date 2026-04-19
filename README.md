@@ -473,6 +473,19 @@ En cada flanco de reloj, si `en_i=1` y no hay reset, el registro se desplaza a l
 
 ---
 
+##### Simulacion post-implementacion
+
+Se verifico que el LFSR genera valores consecutivos en `lfsr_val_o` y la
+FSM descarta los que estan fuera del rango 1-10 o ya fueron usados. Cuando
+encuentra un candidato valido, `q_valid_o` se activa por un ciclo y
+`pregunto_o` queda estable con el indice de la pregunta seleccionada (0-9).
+El arreglo `pregunt...[3:0]` muestra la acumulacion de preguntas
+seleccionadas ronda por ronda.
+
+**Busqueda de candidato valido y activacion de q_valid_o:**
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/sim_question_picker.jpeg?ref_type=heads" width="500">
+
 ## 3. Memoria de Pregunta (question_memory)
 
 **Entradas:** `CLK_i`, `rst`, `consulta_sel[3:0]`, `next_char` (o `next_char_i`), `marcar_usada`
@@ -662,7 +675,35 @@ Lectura: pregunta_usada_o = used_reg[consulta_sel_i]
 
 ---
 
+##### Simulacion post-implementacion
 
+Se verifico el funcionamiento del modulo aplicando pulsos en `next_char_i` para
+avanzar caracter por caracter dentro de la pregunta 0. En la primera region
+(contador 0-31), `tipo_o` vale 0, indicando que los bytes en `char_o`
+corresponden al enunciado. Los valores en hexadecimal son los codigos ASCII
+de cada caracter del texto.
+
+**Enunciado de la pregunta 0 (tipo=0):**
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/sim_question_memory_1.jpeg?ref_type=heads" width="500">
+
+Al avanzar al rango de contador 32-63, `tipo_o` cambia a 1, indicando que
+los caracteres ahora corresponden a las opciones de respuesta. Al llegar
+al contador 64, `fin_bloque_o` se activa por un ciclo senalando el fin
+del bloque de la pregunta actual.
+
+**Region de opciones y fin de bloque (tipo=1):**
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/sim_question_memory_2.jpeg?ref_type=heads" width="500">
+
+Se aplico reset al sistema y se cambio `consulta_sel` de 0 a 1 para
+seleccionar la pregunta 1. Se observa `tipo_o=2` brevemente durante el
+byte de fin de bloque, seguido del reinicio del contador y el inicio
+de la nueva pregunta con `tipo_o=0`.
+
+**Reset y cambio a pregunta 1:**
+
+<img src="https://gitlab.com/grupo0003/jeopardy/-/raw/main/Imagenes%20Finales/sim_question_memory_3.jpeg?ref_type=heads" width="500">
 
 ---
 
