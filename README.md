@@ -368,6 +368,7 @@ Located in: `py_code/`
 ├── SV_code/                          # SystemVerilog source and testbenches
 ├── py_code/                          # Python PC application
 └── README.md
+```
 ---
 
 ## Tools
