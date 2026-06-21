@@ -362,17 +362,12 @@ Located in: `py_code/`
 
 ## Project Structure
 
-├── Banco_de_preguntas_y_Traductor/  # Question bank in plain text + 
-                                      # Python translator to .coe format 
-                                      # for Vivado Block Memory Generator
-├── Imagenes Finales/                 # Simulation screenshots and 
-                                      # evidence (used for GitLab report)
-├── SV_code/                          # SystemVerilog source files and 
-                                      # testbenches
-├── py_code/                          # Python PC application (UART 
-                                      # interface for Player 2)
+```
+├── Banco_de_preguntas_y_Traductor/  # Question bank and .coe translator
+├── Imagenes Finales/                 # Simulation screenshots
+├── SV_code/                          # SystemVerilog source and testbenches
+├── py_code/                          # Python PC application
 └── README.md
-
 ---
 
 ## Tools
